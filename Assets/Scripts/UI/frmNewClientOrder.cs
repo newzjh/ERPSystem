@@ -7,17 +7,18 @@ using UnityEngine;
 using UnityEngine.UI;
 using ErpManageLibrary;
 using System.Linq;
-using System.Xml.Schema;
 
 public class frmNewClientOrder : BasePanel
 {
     public VerticalLayoutGroup table;
     public GridLayoutGroup table1;
+    public HorizontalLayoutGroup table2;
 
     public Toggle toggle0;
     public GameObject edit0;
     public Button button0;
     public GameObject ordertemplate;
+    public GameObject goodstemplate;
 
     public InputField if1;
     public InputField if2;
@@ -39,6 +40,131 @@ public class frmNewClientOrder : BasePanel
 
     }
 
+    private decimal TemplateStatByMaterial<T1, T2>(string statmaterailguid, bool increase)
+        where T1 : new()
+        where T2 : new()
+    {
+        var query1 = connection.Table<T1>();
+        var query2 = connection.Table<T2>();
+        var map2 = new Dictionary<string, T2>();
+
+        var t1 = typeof(T1);
+        var t2 = typeof(T2);
+
+        var property0 = t1.GetProperty("MaterialGuID");
+        var property1 = t1.GetProperty(t2.Name + "Guid");
+        var propertysum = t1.GetProperty("MaterialSum");
+
+        var property2 = t2.GetProperty(t2.Name + "Guid");
+
+        foreach (var s in query2)
+        {
+            string guid = property2.GetValue(s) as string;
+            map2[guid] = s;
+        }
+
+        decimal number = 0;
+        foreach (var s in query1)
+        {
+            string materialguid = property0.GetValue(s) as string;
+            if (materialguid != statmaterailguid)
+                continue;
+
+            string orderguid = property1.GetValue(s) as string;
+            if (!map2.ContainsKey(orderguid))
+                continue;
+
+            if (increase)
+                number += (decimal)propertysum.GetValue(s);
+            else
+                number -= (decimal)propertysum.GetValue(s);
+        }
+        return number;
+    }
+
+    private void LoadMaterialList()
+    {
+        List<GameObject> deletelist = new List<GameObject>();
+        for (int i = 0; i < table2.transform.childCount; i++)
+        {
+            deletelist.Add(table2.transform.GetChild(i).gameObject);
+        }
+        foreach (var go in deletelist)
+            GameObject.DestroyImmediate(go);
+
+        var materials = connection.Table<ErpManageLibrary.Material>().ToList();
+        for(int i=0;i<materials.Count;i++)
+        {
+            var m = materials[i];
+            string materailguid = m.MaterialGuID;
+
+            decimal number = 0;
+            number += TemplateStatByMaterial<InitialGoodsDetail, InitialGoods>(materailguid, true);
+            number += TemplateStatByMaterial<StockInOrderDetail, StockInOrder>(materailguid, true);
+            number += TemplateStatByMaterial<GoodsOrderDetail, GoodsOrder>(materailguid, true);
+            number += TemplateStatByMaterial<HalfGoodsDetail, HalfGoods>(materailguid, true);
+            number += TemplateStatByMaterial<QuitStorageOrderDetail, QuitStorageOrder>(materailguid, true);
+            number += TemplateStatByMaterial<RemoveBillDetail, RemoveBill>(materailguid, true);
+            number += TemplateStatByMaterial<ConsignDetail, Consign>(materailguid, true);
+            number += TemplateStatByMaterial<OtherInOrderDetail, OtherInOrder>(materailguid, true);
+            number += TemplateStatByMaterial<RejectOrderDetail, RejectOrder>(materailguid, true);
+
+            //领料出库
+            number += TemplateStatByMaterial<DrawOrderDetail, DrawOrder>(materailguid, false);
+            //销售出库
+            number += TemplateStatByMaterial<SellOrderDetail, SellOrder>(materailguid, false);
+            //其它出库
+            number += TemplateStatByMaterial<OtherSellOrderDetail, OtherSellOrder>(materailguid, false);
+            //委外出库
+            number += TemplateStatByMaterial<ConsignOutDetail, ConsignOut>(materailguid, false);
+            //超领单
+            number += TemplateStatByMaterial<ExcessOrderDetail, ExcessOrder>(materailguid, false);
+            //调拨出仓库
+            number += TemplateStatByMaterial<RemoveBillDetail, RemoveBill>(materailguid, false);
+            //退料单出仓库
+            number += TemplateStatByMaterial<QuitOrderDetail, QuitOrder>(materailguid, false);
+
+            if (number <= 0)
+                continue;
+
+            {
+                GameObject goodsgo = GameObject.Instantiate(goodstemplate, table2.transform);
+                goodsgo.SetActive(true);
+                var texts = goodsgo.GetComponentsInChildren<Text>(true);
+                texts[0].text = m.MaterialName;
+                texts[1].text = "description";
+                texts[2].text = "$"+m.Price.ToString();
+                texts[4].text = number.ToString();
+                var b = goodsgo.GetComponentInChildren<Button>(true);
+                b.onClick.AddListener(
+                    delegate ()
+                    {
+                        var slider2 = b.transform.parent.GetComponentInChildren<Slider>();
+                        SubmitOrder(int.Parse(b.name), (int)slider2.value);
+                        //foreach (var _t in table.GetComponentsInChildren<Toggle>().Where(_ => _ != toggle)) _t.isOn = false;
+                        //selectguid = toggle.name;
+                        //RefreshEdits();
+                    }
+                );
+                b.name = i.ToString();
+                var slider = goodsgo.GetComponentInChildren<Slider>(true);
+                slider.minValue = 0;
+                slider.maxValue = (float)number;
+                var tIcon = goodsgo.transform.Find("Icon");
+                if (tIcon)
+                {
+                    var img = tIcon.GetComponentInChildren<Image>();
+                    if (img)
+                    {
+                        int id = i + 21;
+                        id = Math.Clamp(id, 21, 40);
+                        img.sprite = Resources.Load<Sprite>("Icons/Books/books-vector-free-icons-set-" + id.ToString());
+                    }
+                }
+            }
+        }
+    }
+
     private void OnEnable()
     {
         if (!Application.isPlaying)
@@ -46,10 +172,11 @@ public class frmNewClientOrder : BasePanel
 
         Load();
 
-        OnSelectMaterial(dd6.value);
-        dd6.onValueChanged.AddListener(OnSelectMaterial);
+        //OnSelectMaterial(dd6.value);
+        //dd6.onValueChanged.AddListener(OnSelectMaterial);
 
         if1.text = IDGenerator();
+        LoadMaterialList();
     }
 
     private void OnDisable()
@@ -78,6 +205,7 @@ public class frmNewClientOrder : BasePanel
         var property2 = t2.GetProperty(t2.Name + "Guid");
         var property3 = t2.GetProperty("IncomeDepot");
         var property4 = t2.GetProperty("InStorage");
+        var property5 = t2.GetProperty("OutStorage");
 
         foreach (var s in query2)
         {
@@ -109,6 +237,11 @@ public class frmNewClientOrder : BasePanel
                     if ((property4.GetValue(x) as string) != storage)
                         continue;
                 }
+                if (property5 != null)
+                {
+                    if ((property5.GetValue(x) as string) != storage)
+                        continue;
+                }
             }
 
             if (increase)
@@ -134,12 +267,7 @@ public class frmNewClientOrder : BasePanel
 
         var storages = new Dictionary<string, int>();
         var querystorage = connection.Table<BasicData>().Where(_ => _.IsDelete == 0 && _.flag == 5);
-        var querymaterial = connection.Table<ErpManageLibrary.Material>();
-        var materials = new List<ErpManageLibrary.Material>();
-        foreach(var q in querymaterial)
-        {
-            materials.Add(q);
-        }
+        var materials = connection.Table<ErpManageLibrary.Material>().ToList();
         var materailguid = materials[index].MaterialGuID;
 
         foreach (var q in querystorage)
@@ -523,6 +651,17 @@ public class frmNewClientOrder : BasePanel
     public void SubmitOrder()
     {
         if1.text = IDGenerator();
+
+        NewBillExe();
+
+        Load();
+    }
+
+    public void SubmitOrder(int materialindex, int number)
+    {
+        if1.text = IDGenerator();
+        dd6.value = materialindex;
+        if7.text = number.ToString();
 
         NewBillExe();
 

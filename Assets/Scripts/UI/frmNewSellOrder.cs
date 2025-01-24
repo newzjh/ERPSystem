@@ -261,6 +261,31 @@ public class frmNewSellOrder : BasePanel
 
     }
 
+    Dictionary<string, Text> assigned_text_map = new Dictionary<string, Text>();
+
+    private void RefreshAssignedText()
+    {
+        var query1 = connection.Table<ClientOrderDetail>().ToList();
+        var query2 = connection.Table<ClientOrder>().ToList();
+
+        Dictionary<string, ClientOrder> map2 = new Dictionary<string, ClientOrder>();
+        foreach (var s in query2)
+        {
+            map2[s.ClientOrderGuid] = s;
+        }
+
+        foreach (var s in query1)
+        {
+            ClientOrder so = map2[s.ClientOrderGuid];
+            Text text;
+            if (assigned_text_map.TryGetValue(so.ClientOrderID, out text))
+            {
+                bool assigned = false;
+                loaded_clientorder_map.TryGetValue(so.ClientOrderID, out assigned);
+                text.text = assigned.ToString();
+            }
+        }
+    }
     private void LoadOrders()
     {
         List<GameObject> deletelist = new List<GameObject>();
@@ -274,6 +299,7 @@ public class frmNewSellOrder : BasePanel
         var query1 = connection.Table<ClientOrderDetail>().ToList();
         var query2 = connection.Table<ClientOrder>().ToList();
         var query3 = connection.Table<ErpManageLibrary.Material>().ToList();
+        assigned_text_map.Clear();
 
         Dictionary<string, ClientOrder> map2 = new Dictionary<string, ClientOrder>();
         foreach (var s in query2)
@@ -336,16 +362,24 @@ public class frmNewSellOrder : BasePanel
                 col.SetActive(true);
                 col.GetComponentInChildren<Text>(true).text = s.MaterialSum.ToString();
             }
+            {
+                GameObject col = GameObject.Instantiate(edit0, table2.transform);
+                col.SetActive(true);                
+                assigned_text_map[so.ClientOrderID] = col.GetComponentInChildren<Text>(true);
+            }
             //{
             //    GameObject col = GameObject.Instantiate(edit0, table2.transform);
             //    col.SetActive(true);
             //    col.GetComponentInChildren<Text>(true).text = so.ContractID;
             //}
         }
+        RefreshAssignedText();
     }
 
+    private Dictionary<string, bool> loaded_clientorder_map = new Dictionary<string, bool>();
     private void LoadBills()
     {
+        loaded_clientorder_map.Clear();
         List<GameObject> deletelist = new List<GameObject>();
         for (int i = 0; i < table.transform.childCount; i++)
         {
@@ -385,7 +419,7 @@ public class frmNewSellOrder : BasePanel
         }
 
         foreach (var s in query1)
-        {
+        {            
             if (!map2.ContainsKey(s.SellOrderGuid))
                 continue;
 
@@ -405,13 +439,15 @@ public class frmNewSellOrder : BasePanel
                 var texts = ordergo.GetComponentsInChildren<Text>(true);
                 texts[0].text = "Order ID:" + so.SellOrderID;
                 texts[1].text = "Order Date:" + so.SellOrderDate.ToString();
-                texts[2].text = "Handle Person:" + map4[so.StoragePerson].EmpName;
+                //texts[2].text = "Handle Person:" + map4[so.StoragePerson].EmpName;
+                texts[2].text = "ClientOrderID:" + s.ClientOrderID;
                 texts[3].text = "OutStorage:" + so.OutStorage;
                 texts[4].text = "Client:" + so.Client;
                 texts[5].text = m.MaterialName;
                 texts[6].text = "Number:" + s.MaterialSum.ToString();
                 texts[7].text = "Unit Price:" + s.Price.ToString();
                 texts[8].text = "Total Price:" + s.MaterialMoney.ToString();
+                loaded_clientorder_map[s.ClientOrderID] = true;
                 var toggle = ordergo.GetComponentInChildren<Toggle>(true);
                 toggle.isOn = false;
                 toggle.onValueChanged.AddListener(
@@ -440,6 +476,7 @@ public class frmNewSellOrder : BasePanel
             }
 
         }
+        RefreshAssignedText();
     }
 
     private void LoadBasicData(int Flag)
@@ -553,9 +590,9 @@ public class frmNewSellOrder : BasePanel
         so.EndDate = datetime;
         so.Shipping = string.Empty;
 
-        sod.ClientOrderDetailGuid = Guid.Empty.ToString();
-        sod.ClientOrderGuid = Guid.Empty.ToString();
-        sod.ClientOrderID = string.Empty;
+        //sod.ClientOrderDetailGuid = Guid.Empty.ToString();
+        //sod.ClientOrderGuid = Guid.Empty.ToString();
+        sod.ClientOrderID = if3.text;
         sod.MaterialGuID = map3[dd6.value].MaterialGuID;
         sod.Price = decimalTryParse(if7.text);
         sod.MaterialSum = decimalTryParse(if8.text);
@@ -657,7 +694,7 @@ public class frmNewSellOrder : BasePanel
         sod.SellOrderGuid = orderguid;
         sod.ClientOrderDetailGuid = Guid.Empty.ToString();
         sod.ClientOrderGuid = Guid.Empty.ToString();
-        sod.ClientOrderID = string.Empty;
+        sod.ClientOrderID = if3.text;
         sod.MaterialGuID = map3[dd6.value].MaterialGuID;
         sod.Price = decimalTryParse(if7.text);
         sod.MaterialSum = decimalTryParse(if8.text);
@@ -686,13 +723,17 @@ public class frmNewSellOrder : BasePanel
 
         var cod = connection.Table<ClientOrderDetail>().Where(_ => _.ClientOrderDetailGuid == selectguid2).FirstOrDefault();
         var co = connection.Table<ClientOrder>().Where(_ => _.ClientOrderGuid == cod.ClientOrderGuid).FirstOrDefault();
+
+        if (loaded_clientorder_map.ContainsKey(co.ClientOrderID) && loaded_clientorder_map[co.ClientOrderID])
+            return;
+
         decimal requirenumber = cod.MaterialSum;
 
         var m = materials.Where(_ => _.MaterialGuID == cod.MaterialGuid).FirstOrDefault();
         dd6.value = materials.IndexOf(m);
         if2.text = DateTime.Now.ToString();
         if7.text = m.Price.ToString();
-        if3.text = co.ClientOrderGuid;
+        if3.text = co.ClientOrderID;
 
         var storages = connection.Table<BasicData>().Where(_ => _.IsDelete == 0 && _.flag == 5).ToList();
         for(int i=0;i<storages.Count;i++)
