@@ -9,6 +9,7 @@ using UnityEngine.EventSystems;
 using UnityEngine.Networking;
 using Cysharp.Threading.Tasks;
 using SQLite;
+using ErpManageLibrary;
 
 public class BasePanel : MonoBehaviour
 {
@@ -48,8 +49,6 @@ public class BasePanel : MonoBehaviour
             var asset = Resources.Load<TextAsset>("JXC.db");
             InfoPanel.ShowMessage(asset==null?"asset==null":asset.bytes.Length.ToString());
             System.IO.File.WriteAllBytes(localpath, asset.bytes);
-            var testbytes = File.ReadAllBytes(localpath);
-            InfoPanel.ShowMessage(testbytes==null? "testbytes==null": testbytes.Length.ToString());
             connection = new SQLiteConnection(localpath);
             InfoPanel.ShowMessage("finish loading database...");
         }

@@ -94,18 +94,29 @@ public class frmStockInOrder : BasePanel
 
     private void RefreshEdits()
     {
+        var materials = connection.Table<ErpManageLibrary.Material>().ToList();
+        var suppliers = connection.Table<Supplier>().ToList();
+        var employees = connection.Table<Employee>().ToList();
+        var storages = connection.Table<BasicData>().Where(_ => _.IsDelete == 0 && _.flag == 5).ToList();
+
         var sod = connection.Table<StockInOrderDetail>().Where(_ => _.StockInOrderDetailGuid == selectguid).FirstOrDefault();
         var so = connection.Table<StockInOrder>().Where(_ => _.StockInOrderGuid == sod.StockInOrderGuid).FirstOrDefault();
         if1.text = so.StockInOrderID;
         if2.text = so.StockInOrderDate.ToString();
         //if3.text = s.LinkMan;
+        dd3.value = suppliers.IndexOf(suppliers.Where(_ => _.Guid == so.SupplierGuid).FirstOrDefault());
         //if4.text = s.Telephone;
+        dd4.value = employees.IndexOf(employees.Where(_ => _.EmpGuid == so.StoragePerson).FirstOrDefault());
         //if5.text = s.Fax;
+        dd5.value = storages.IndexOf(storages.Where(_ => _.UnitName == so.InStorage).FirstOrDefault());
         if6.text = so.BatchNO;
         //dd7.value = sod.MaterialGuID;
+        dd7.value = materials.IndexOf(materials.Where(_ => _.MaterialGuID == sod.MaterialGuID).FirstOrDefault());
         if8.text = sod.MaterialSum.ToString();
         if9.text = sod.DeliverySum.ToString();
         if10.text = sod.StorageSum.ToString();
+
+
     }
 
     private void LoadBills()
@@ -141,12 +152,6 @@ public class frmStockInOrder : BasePanel
         foreach (var s in query4)
         {
             map4[s.EmpGuid] = s;
-        }
-
-        Dictionary<string, BasicData> map5 = new Dictionary<string, BasicData>();
-        foreach (var s in query5)
-        {
-            map5[s.UnitName] = s;
         }
 
         Dictionary<string, Supplier> map6 = new Dictionary<string, Supplier>();
@@ -209,7 +214,7 @@ public class frmStockInOrder : BasePanel
             {
                 GameObject col = GameObject.Instantiate(edit0, table.transform);
                 col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = map5[so.InStorage].UnitName;
+                col.GetComponentInChildren<Text>(true).text = so.InStorage;
             }
             {
                 GameObject col = GameObject.Instantiate(edit0, table.transform);

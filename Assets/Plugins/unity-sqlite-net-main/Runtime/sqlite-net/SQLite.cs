@@ -1999,7 +1999,12 @@ namespace SQLite
 
 			var pk = map.PK;
 
-			if (pk == null) {
+            if (pk == null)
+            {
+                pk = map.Columns[0];
+            }
+            if (pk == null) 
+            {
 				throw new NotSupportedException ("Cannot update " + map.TableName + ": it has no PK");
 			}
 
@@ -2124,10 +2129,15 @@ namespace SQLite
 		public int Delete (object primaryKey, TableMapping map)
 		{
 			var pk = map.PK;
-			if (pk == null) {
-				throw new NotSupportedException ("Cannot delete " + map.TableName + ": it has no PK");
+			if (pk == null) 
+            {
+                pk = map.Columns[0];
 			}
-			var q = string.Format ("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pk.Name);
+            if (pk == null)
+            {
+                throw new NotSupportedException("Cannot delete " + map.TableName + ": it has no PK");
+            }
+            var q = string.Format ("delete from \"{0}\" where \"{1}\" = ?", map.TableName, pk.Name);
 			var count = Execute (q, primaryKey);
 			if (count > 0)
 				OnTableChanged (map, NotifyTableChangedAction.Delete);

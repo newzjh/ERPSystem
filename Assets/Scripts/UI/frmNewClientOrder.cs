@@ -12,8 +12,11 @@ public class frmNewClientOrder : BasePanel
 {
     public GridLayoutGroup table;
     public GridLayoutGroup table1;
+
     public Toggle toggle0;
     public GameObject edit0;
+    public Button button0;
+
     public InputField if1;
     public InputField if2;
     public Dropdown dd3;
@@ -40,6 +43,7 @@ public class frmNewClientOrder : BasePanel
             return;
         Load();
 
+        OnSelectMaterial(dd6.value);
         dd6.onValueChanged.AddListener(OnSelectMaterial);
     }
 
@@ -209,35 +213,18 @@ public class frmNewClientOrder : BasePanel
 
     private void RefreshEdits()
     {
+        var materials = connection.Table<ErpManageLibrary.Material>().ToList();
+        var depts = connection.Table<Dept>().ToList();
+
         var cod = connection.Table<ClientOrderDetail>().Where(_ => _.ClientOrderDetailGuid == selectguid).FirstOrDefault();
         var co = connection.Table<ClientOrder>().Where(_ => _.ClientOrderGuid == cod.ClientOrderGuid).FirstOrDefault();
         if1.text = co.ClientOrderID;
         if2.text = co.ClientOrderDate.ToString();
-        //if3.text = so.Client;
+        dd3.value = depts.IndexOf(depts.Where(_ => _.DeptGuid == co.DownDept).FirstOrDefault());
         if4.text = co.CheckBatchID;
         if5.text = co.ContractID;
-        //if6.text = so.BatchNO;
+        dd6.value = materials.IndexOf(materials.Where(_ => _.MaterialGuID == cod.MaterialGuid).FirstOrDefault());
         if7.text = cod.MaterialSum.ToString();
-        
-        var depts = connection.Table<Dept>().ToList();
-        for (int i = 0; i < depts.Count; i++)
-        {
-            if (depts[i].DeptGuid==co.DownDept)
-            {
-                dd3.value = i;
-                break;
-            }
-        }
-
-        var materials = connection.Table<ErpManageLibrary.Material>().ToList();
-        for (int i = 0; i < materials.Count; i++)
-        {
-            if (materials[i].MaterialGuID == cod.MaterialGuid)
-            {
-                dd6.value = i;
-                break;
-            }
-        }
     }
 
     private void LoadBills()
@@ -367,6 +354,7 @@ public class frmNewClientOrder : BasePanel
             od.text = s.DeptName;
             dd3.options.Add(od);
         }
+        dd3.value = 3;
     }
 
     private void LoadMaterials()

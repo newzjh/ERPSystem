@@ -45,4 +45,8 @@ public class NewMainForm : BasePanel
     {
         SwitchFrm<frmGlobalStockReport>();
     }
+    public void OnButtonNewSellOrder()
+    {
+        SwitchFrm<frmNewSellOrder>();
+    }
 }
