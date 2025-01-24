@@ -10,13 +10,14 @@ using System.Linq;
 
 public class frmNewSellOrder : BasePanel
 {
-    public GridLayoutGroup table;
+    public VerticalLayoutGroup table;
     public GridLayoutGroup table1;
     public GridLayoutGroup table2;
 
     public Toggle toggle0;
     public GameObject edit0;
     public Button button0;
+    public GameObject ordertemplate;
 
     public InputField if1;
     public InputField if2;
@@ -53,6 +54,7 @@ public class frmNewSellOrder : BasePanel
 
         LoadOrders();
 
+        if1.text = IDGenerator();
     }
 
     private void OnDisable()
@@ -257,9 +259,9 @@ public class frmNewSellOrder : BasePanel
         foreach (var go in deletelist)
             GameObject.DestroyImmediate(go);
 
-        var query1 = connection.Table<ClientOrderDetail>();
-        var query2 = connection.Table<ClientOrder>();
-        var query3 = connection.Table<ErpManageLibrary.Material>();
+        var query1 = connection.Table<ClientOrderDetail>().ToList();
+        var query2 = connection.Table<ClientOrder>().ToList();
+        var query3 = connection.Table<ErpManageLibrary.Material>().ToList();
 
         Dictionary<string, ClientOrder> map2 = new Dictionary<string, ClientOrder>();
         foreach (var s in query2)
@@ -320,13 +322,13 @@ public class frmNewSellOrder : BasePanel
             {
                 GameObject col = GameObject.Instantiate(edit0, table2.transform);
                 col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = so.CheckBatchID;
+                col.GetComponentInChildren<Text>(true).text = s.MaterialSum.ToString();
             }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table2.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = so.ContractID;
-            }
+            //{
+            //    GameObject col = GameObject.Instantiate(edit0, table2.transform);
+            //    col.SetActive(true);
+            //    col.GetComponentInChildren<Text>(true).text = so.ContractID;
+            //}
         }
     }
 
@@ -342,29 +344,29 @@ public class frmNewSellOrder : BasePanel
 
         var query1 = connection.Table<SellOrderDetail>();
         var query2 = connection.Table<SellOrder>();
-        var query3 = connection.Table<ErpManageLibrary.Material>();
+        var materials = connection.Table<ErpManageLibrary.Material>().ToList();
         var query4 = connection.Table<Employee>();
         var query5 = connection.Table<BasicData>().Where(_ => _.IsDelete == 0 && _.flag == 5);
 
-        Dictionary<string, SellOrder> map2 = new Dictionary<string, SellOrder>();
+        var map2 = new Dictionary<string, SellOrder>();
         foreach (var s in query2)
         {
             map2[s.SellOrderGuid] = s;
         }
 
-        Dictionary<string, ErpManageLibrary.Material> map3 = new Dictionary<string, ErpManageLibrary.Material>();
-        foreach (var s in query3)
+        var map3 = new Dictionary<string, ErpManageLibrary.Material>();
+        foreach (var s in materials)
         {
             map3[s.MaterialGuID] = s;
         }
 
-        Dictionary<string, Employee> map4 = new Dictionary<string, Employee>();
+        var map4 = new Dictionary<string, Employee>();
         foreach (var s in query4)
         {
             map4[s.EmpGuid] = s;
         }
 
-        Dictionary<string, BasicData> map5 = new Dictionary<string, BasicData>();
+        var map5 = new Dictionary<string, BasicData>();
         foreach (var s in query5)
         {
             map5[s.UnitName] = s;
@@ -386,71 +388,45 @@ public class frmNewSellOrder : BasePanel
                 continue;
 
             {
-                GameObject col = GameObject.Instantiate(toggle0.gameObject, table.transform);
-                col.SetActive(true);
-                {
-                    Toggle toggle = col.GetComponentInChildren<Toggle>(true);
-                    toggle.isOn = false;
-                    toggle.onValueChanged.AddListener(
-                        delegate (bool value)
+                GameObject ordergo = GameObject.Instantiate(ordertemplate, table.transform);
+                ordergo.SetActive(true);
+                var texts = ordergo.GetComponentsInChildren<Text>(true);
+                texts[0].text = "Order ID:" + so.SellOrderID;
+                texts[1].text = "Order Date:" + so.SellOrderDate.ToString();
+                texts[2].text = "Handle Person:" + map4[so.StoragePerson].EmpName;
+                texts[3].text = "OutStorage:" + so.OutStorage;
+                texts[4].text = "Client:" + so.Client;
+                texts[5].text = m.MaterialName;
+                texts[6].text = "Number:" + s.MaterialSum.ToString();
+                texts[7].text = "Price:" + s.Price.ToString();
+                texts[8].text = "Total Money:" + s.MaterialMoney.ToString();
+                var toggle = ordergo.GetComponentInChildren<Toggle>(true);
+                toggle.isOn = false;
+                toggle.onValueChanged.AddListener(
+                    delegate (bool value)
+                    {
+                        if (value)
                         {
-                            if (value)
-                            {
-                                foreach (var _t in table.GetComponentsInChildren<Toggle>().Where(_ => _ != toggle)) _t.isOn = false;
-                                selectguid = toggle.name;
-                                RefreshEdits();
-                            }
+                            foreach (var _t in table.GetComponentsInChildren<Toggle>().Where(_ => _ != toggle)) _t.isOn = false;
+                            selectguid = toggle.name;
+                            RefreshEdits();
                         }
-                    );
+                    }
+                );
+                toggle.name = s.ClientOrderDetailGuid;
+                var tIcon = ordergo.transform.Find("Icon");
+                if (tIcon)
+                {
+                    var img = tIcon.GetComponentInChildren<Image>();
+                    if (img)
+                    {
+                        int id = materials.IndexOf(materials.Where(_ => _.MaterialGuID == m.MaterialGuID).FirstOrDefault()) + 21;
+                        id = Math.Clamp(id, 21, 40);
+                        img.sprite = Resources.Load<Sprite>("Icons/Books/books-vector-free-icons-set-" + id.ToString());
+                    }
                 }
-                col.name = s.SellOrderDetailGuid;
-                col.GetComponentInChildren<Text>(true).text = so.SellOrderID;
             }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = so.SellOrderDate.ToString();
-            }
-            //{
-            //    GameObject col = GameObject.Instantiate(edit0, table.transform);
-            //    col.SetActive(true);
-            //    col.GetComponentInChildren<Text>(true).text = so.Client;
-            //}
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = map4[so.StoragePerson].EmpName;
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = so.OutStorage;
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = m.MaterialName;
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = s.Price.ToString();
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = s.MaterialSum.ToString();
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = s.MaterialMoney.ToString();
-            }
-            //{
-            //    GameObject col = GameObject.Instantiate(edit0, table.transform);
-            //    col.SetActive(true);
-            //    col.GetComponentInChildren<Text>(true).text = s.BoxSum.ToString();
-            //}
+
         }
     }
 

@@ -42,6 +42,8 @@ public class frmStockInOrder : BasePanel
         if (!Application.isPlaying)
             return;
         Load();
+
+        if1.text = IDGenerator();
     }
 
     private void OnDisable()

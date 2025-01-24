@@ -7,15 +7,17 @@ using UnityEngine;
 using UnityEngine.UI;
 using ErpManageLibrary;
 using System.Linq;
+using System.Xml.Schema;
 
 public class frmNewClientOrder : BasePanel
 {
-    public GridLayoutGroup table;
+    public VerticalLayoutGroup table;
     public GridLayoutGroup table1;
 
     public Toggle toggle0;
     public GameObject edit0;
     public Button button0;
+    public GameObject ordertemplate;
 
     public InputField if1;
     public InputField if2;
@@ -41,10 +43,13 @@ public class frmNewClientOrder : BasePanel
     {
         if (!Application.isPlaying)
             return;
+
         Load();
 
         OnSelectMaterial(dd6.value);
         dd6.onValueChanged.AddListener(OnSelectMaterial);
+
+        if1.text = IDGenerator();
     }
 
     private void OnDisable()
@@ -239,18 +244,18 @@ public class frmNewClientOrder : BasePanel
 
         var query1 = connection.Table<ClientOrderDetail>();
         var query2 = connection.Table<ClientOrder>();
-        var query3 = connection.Table<ErpManageLibrary.Material>();
-        var query4 = connection.Table<Supplier>();
+        var materials = connection.Table<ErpManageLibrary.Material>().ToList();
+        var suppliers = connection.Table<Supplier>().ToList();
         var query5 = connection.Table<Dept>();
 
-        Dictionary<string, ClientOrder> map2 = new Dictionary<string, ClientOrder>();
+        var map2 = new Dictionary<string, ClientOrder>();
         foreach(var s in query2)
         {
             map2[s.ClientOrderGuid] = s;
         }
 
-        Dictionary<string, ErpManageLibrary.Material> map3 = new Dictionary<string, ErpManageLibrary.Material>();
-        foreach (var s in query3)
+        var map3 = new Dictionary<string, ErpManageLibrary.Material>();
+        foreach (var s in materials)
         {
             map3[s.MaterialGuID] = s;
         }
@@ -279,56 +284,43 @@ public class frmNewClientOrder : BasePanel
             Dept dept = depts[co.DownDept];
 
             {
-                GameObject col = GameObject.Instantiate(toggle0.gameObject, table.transform);
-                col.SetActive(true);
-                {
-                    Toggle toggle = col.GetComponentInChildren<Toggle>(true);
-                    toggle.isOn = false;
-                    toggle.onValueChanged.AddListener(
-                        delegate (bool value)
+                GameObject ordergo = GameObject.Instantiate(ordertemplate, table.transform);
+                ordergo.SetActive(true);
+                var texts = ordergo.GetComponentsInChildren<Text>(true);
+                texts[0].text = "Order ID:"+co.ClientOrderID;
+                texts[1].text = "Order Date:"+co.ClientOrderDate.ToString();
+                texts[2].text = "Handle Dept:"+dept.DeptName;
+                texts[3].text = "CheckBatch ID:" + co.CheckBatchID;
+                texts[4].text = "Contract ID:" + co.ContractID;
+                texts[5].text = m.MaterialName;
+                texts[6].text = "Number:"+s.MaterialSum.ToString();
+                var toggle = ordergo.GetComponentInChildren<Toggle>(true);
+                toggle.isOn = false;
+                toggle.onValueChanged.AddListener(
+                    delegate (bool value)
+                    {
+                        if (value)
                         {
-                            if (value)
-                            {
-                                foreach (var _t in table.GetComponentsInChildren<Toggle>().Where(_ => _ != toggle)) _t.isOn = false;
-                                selectguid = toggle.name;
-                                RefreshEdits();
-                            }
+                            foreach (var _t in table.GetComponentsInChildren<Toggle>().Where(_ => _ != toggle)) _t.isOn = false;
+                            selectguid = toggle.name;
+                            RefreshEdits();
                         }
-                    );
+                    }
+                );
+                toggle.name = s.ClientOrderDetailGuid;
+                var tIcon = ordergo.transform.Find("Icon");
+                if (tIcon)
+                {
+                    var img = tIcon.GetComponentInChildren<Image>();
+                    if (img)
+                    {
+                        int id = 21 + materials.IndexOf(materials.Where(_ => _.MaterialGuID == m.MaterialGuID).FirstOrDefault());
+                        img.sprite = Resources.Load<Sprite>("Icons/Books/books-vector-free-icons-set-"+id.ToString());
+                    }
                 }
-                col.name = s.ClientOrderDetailGuid;
-                col.GetComponentInChildren<Text>(true).text = co.ClientOrderID;
             }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = co.ClientOrderDate.ToString();
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = dept.DeptName;
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = co.CheckBatchID;
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = co.ContractID;
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = m.MaterialName;
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = s.MaterialSum.ToString();
-            }
+
+ 
         }
     }
 
@@ -523,6 +515,15 @@ public class frmNewClientOrder : BasePanel
 
     public void NewBill()
     {
+        NewBillExe();
+
+        Load();
+    }
+
+    public void SubmitOrder()
+    {
+        if1.text = IDGenerator();
+
         NewBillExe();
 
         Load();

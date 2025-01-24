@@ -10,6 +10,8 @@ using UnityEngine.Networking;
 using Cysharp.Threading.Tasks;
 using SQLite;
 using ErpManageLibrary;
+using System.Runtime.Serialization;
+using System.Text;
 
 public class BasePanel : MonoBehaviour
 {
@@ -215,5 +217,21 @@ public class BasePanel : MonoBehaviour
         decimal ret = 0;
         decimal.TryParse(text, out ret);
         return ret;
+    }
+
+    protected string IDGenerator()
+    {
+        var now = DateTime.Now;
+        string r1 = now.Year.ToString() + now.Month.ToString() + now.Day.ToString();
+
+        var rnd = new System.Random();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 6; i++)
+        {
+            sb.Append(rnd.Next(10));
+        }
+        string r2 = sb.ToString();
+
+        return r1 + r2; ;
     }
 }
