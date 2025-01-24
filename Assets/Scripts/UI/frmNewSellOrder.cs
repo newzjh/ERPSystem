@@ -83,6 +83,7 @@ public class frmNewSellOrder : BasePanel
         var property2 = t2.GetProperty(t2.Name + "Guid");
         var property3 = t2.GetProperty("IncomeDepot");
         var property4 = t2.GetProperty("InStorage");
+        var property5 = t2.GetProperty("OutStorage");
 
         foreach (var s in query2)
         {
@@ -114,6 +115,11 @@ public class frmNewSellOrder : BasePanel
                     if ((property4.GetValue(x) as string) != storage)
                         continue;
                 }
+                if (property5 != null)
+                {
+                    if ((property5.GetValue(x) as string) != storage)
+                        continue;
+                }
             }
 
             if (increase)
@@ -125,9 +131,11 @@ public class frmNewSellOrder : BasePanel
     }
 
 
+    private List<decimal> materialcountbystorage = new List<decimal>();
 
     private void OnSelectMaterial(int index)
     {
+        materialcountbystorage.Clear();
 
         List<GameObject> deletelist = new List<GameObject>();
         for (int i = 0; i < table1.transform.childCount; i++)
@@ -163,28 +171,37 @@ public class frmNewSellOrder : BasePanel
             number += TemplateStat<OtherInOrderDetail, OtherInOrder>(materailguid, storage, true);
             number += TemplateStat<RejectOrderDetail, RejectOrder>(materailguid, storage, true);
 
-            //领料出库
-            number += TemplateStat<DrawOrderDetail, DrawOrder>(materailguid, storage, false);
-            //销售出库
-            number += TemplateStat<SellOrderDetail, SellOrder>(materailguid, storage, false);
-            //其它出库
-            number += TemplateStat<OtherSellOrderDetail, OtherSellOrder>(materailguid, storage, false);
-            //委外出库
-            number += TemplateStat<ConsignOutDetail, ConsignOut>(materailguid, storage, false);
-            //超领单
-            number += TemplateStat<ExcessOrderDetail, ExcessOrder>(materailguid, storage, false);
-            //调拨出仓库
-            number += TemplateStat<RemoveBillDetail, RemoveBill>(materailguid, storage, false);
-            //退料单出仓库
-            number += TemplateStat<QuitOrderDetail, QuitOrder>(materailguid, storage, false);
+            decimal rest = number;
 
-            if (number <= 0)
+            //领料出库
+            rest += TemplateStat<DrawOrderDetail, DrawOrder>(materailguid, storage, false);
+            //销售出库
+            rest += TemplateStat<SellOrderDetail, SellOrder>(materailguid, storage, false);
+            //其它出库
+            rest += TemplateStat<OtherSellOrderDetail, OtherSellOrder>(materailguid, storage, false);
+            //委外出库
+            rest += TemplateStat<ConsignOutDetail, ConsignOut>(materailguid, storage, false);
+            //超领单
+            rest += TemplateStat<ExcessOrderDetail, ExcessOrder>(materailguid, storage, false);
+            //调拨出仓库
+            rest += TemplateStat<RemoveBillDetail, RemoveBill>(materailguid, storage, false);
+            //退料单出仓库
+            rest += TemplateStat<QuitOrderDetail, QuitOrder>(materailguid, storage, false);
+
+            materialcountbystorage.Add(rest);
+
+            if (rest <= 0)
                 continue;
 
             {
                 GameObject col = GameObject.Instantiate(edit0, table1.transform);
                 col.SetActive(true);
                 col.GetComponentInChildren<Text>(true).text = storage;
+            }
+            {
+                GameObject col = GameObject.Instantiate(edit0, table1.transform);
+                col.SetActive(true);
+                col.GetComponentInChildren<Text>(true).text = rest.ToString();
             }
             {
                 GameObject col = GameObject.Instantiate(edit0, table1.transform);
@@ -200,11 +217,6 @@ public class frmNewSellOrder : BasePanel
                 GameObject col = GameObject.Instantiate(edit0, table1.transform);
                 col.SetActive(true);
                 col.GetComponentInChildren<Text>(true).text = (materials[index].Price * number).ToString();
-            }
-            {
-                GameObject col = GameObject.Instantiate(edit0, table1.transform);
-                col.SetActive(true);
-                col.GetComponentInChildren<Text>(true).text = string.Empty;
             }
         }   
     }
@@ -398,8 +410,8 @@ public class frmNewSellOrder : BasePanel
                 texts[4].text = "Client:" + so.Client;
                 texts[5].text = m.MaterialName;
                 texts[6].text = "Number:" + s.MaterialSum.ToString();
-                texts[7].text = "Price:" + s.Price.ToString();
-                texts[8].text = "Total Money:" + s.MaterialMoney.ToString();
+                texts[7].text = "Unit Price:" + s.Price.ToString();
+                texts[8].text = "Total Price:" + s.MaterialMoney.ToString();
                 var toggle = ordergo.GetComponentInChildren<Toggle>(true);
                 toggle.isOn = false;
                 toggle.onValueChanged.AddListener(
@@ -413,7 +425,7 @@ public class frmNewSellOrder : BasePanel
                         }
                     }
                 );
-                toggle.name = s.ClientOrderDetailGuid;
+                toggle.name = s.SellOrderDetailGuid;
                 var tIcon = ordergo.transform.Find("Icon");
                 if (tIcon)
                 {
@@ -527,9 +539,9 @@ public class frmNewSellOrder : BasePanel
         so.SellOrderID = if1.text;
         so.SellOrderDate = datetime;
         so.Client = if3.text;
-        so.OutStorage = basicdatas[dd4.value].UnitName;
-        so.StoragePerson = employees[dd5.value].EmpGuid;
-        so.QualityPerson = Guid.Empty.ToString();
+        so.OutStorage = basicdatas[dd5.value].UnitName;
+        so.StoragePerson = employees[dd4.value].EmpGuid;
+        so.QualityPerson = employees[dd4.value].EmpGuid;
         so.Remark = Guid.Empty.ToString();
         so.CreateGuid = Guid.Empty.ToString();
         so.CreateDate = datetime;
@@ -626,9 +638,9 @@ public class frmNewSellOrder : BasePanel
         so.SellOrderID = if1.text;
         so.SellOrderDate = datetime;
         so.Client = if3.text;
-        so.OutStorage = basicdatas[dd4.value].UnitName;
-        so.StoragePerson = employees[dd5.value].EmpGuid;
-        so.QualityPerson = Guid.Empty.ToString();
+        so.OutStorage = basicdatas[dd5.value].UnitName;
+        so.StoragePerson = employees[dd4.value].EmpGuid;
+        so.QualityPerson = employees[dd4.value].EmpGuid;
         so.Remark = Guid.Empty.ToString();
         so.CreateGuid = Guid.Empty.ToString();
         so.CreateDate = datetime;
@@ -661,6 +673,44 @@ public class frmNewSellOrder : BasePanel
     public void NewBill()
     {
         NewBillExe();
+
+        Load();
+    }
+
+    public void SubmitOrder()
+    {
+        if (string.IsNullOrEmpty(selectguid2))
+            return;
+
+        var materials = connection.Table<ErpManageLibrary.Material>().ToList();
+
+        var cod = connection.Table<ClientOrderDetail>().Where(_ => _.ClientOrderDetailGuid == selectguid2).FirstOrDefault();
+        var co = connection.Table<ClientOrder>().Where(_ => _.ClientOrderGuid == cod.ClientOrderGuid).FirstOrDefault();
+        decimal requirenumber = cod.MaterialSum;
+
+        var m = materials.Where(_ => _.MaterialGuID == cod.MaterialGuid).FirstOrDefault();
+        dd6.value = materials.IndexOf(m);
+        if2.text = DateTime.Now.ToString();
+        if7.text = m.Price.ToString();
+        if3.text = co.ClientOrderGuid;
+
+        var storages = connection.Table<BasicData>().Where(_ => _.IsDelete == 0 && _.flag == 5).ToList();
+        for(int i=0;i<storages.Count;i++)
+        {
+            decimal number = Math.Min(requirenumber, materialcountbystorage[i]);
+            if (number>0)
+            {
+                if8.text = number.ToString();
+                if1.text = IDGenerator();
+                dd5.value = i;
+                decimal totalmoney = m.Price * number;
+                if9.text = totalmoney.ToString();
+                NewBillExe();
+            }
+            requirenumber -= number;
+            if (requirenumber <= 0)
+                break;
+        }
 
         Load();
     }
