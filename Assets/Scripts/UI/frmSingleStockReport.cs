@@ -358,10 +358,11 @@ public class frmSingleStockReport : BasePanel
             c.TotalMoney = 0;
             if (stat.ContainsKey(s.MaterialGuID))
                 c = stat[s.MaterialGuID];
-            c.TotalMoney = s.Price * c.Number;
 
-            //if (c.Number <= 0)
-            //    continue;
+            if (c.Number <= 0)
+                c.Number = 0;
+
+            c.TotalMoney = s.Price * c.Number;
 
             {
                 GameObject col = GameObject.Instantiate(toggle0.gameObject, table.transform);
