@@ -1,3 +1,4 @@
+using ErpManageLibrary;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -16,14 +17,22 @@ public class OldMainForm : BasePanel
         
     }
 
-    public void OnButtonStockInOrder()
+    public void OnButtonStockInOrderA()
     {
-        SwitchFrm<frmStockInOrder>();
+        var frm = FindFirstObjectByType<frmSingleStockInOrder>(FindObjectsInactive.Include);
+        frm.currentstorage = 0;
+        frm.RefreshStorageTitle();
+        frm.Load();
+        SwitchFrm<frmSingleStockInOrder>();
     }
 
-    public void OnButtonBuyOrder()
+    public void OnButtonStockInOrderB()
     {
-        SwitchFrm<frmBuyOrder>();
+        var frm = FindFirstObjectByType<frmSingleStockInOrder>(FindObjectsInactive.Include);
+        frm.currentstorage = 1;
+        frm.RefreshStorageTitle();
+        frm.Load();
+        SwitchFrm<frmSingleStockInOrder>();
     }
 
     public void OnButtonSellOrder()

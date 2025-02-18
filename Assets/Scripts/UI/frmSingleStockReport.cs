@@ -429,6 +429,7 @@ public class frmSingleStockReport : BasePanel
         }
     }
 
+    [NonSerialized]
     public int currentstorage = -1;
     List<string> storages = new List<string>();
     private void LoadBasicData(int Flag)
@@ -439,7 +440,7 @@ public class frmSingleStockReport : BasePanel
         {
             storages.Add(s.UnitName);
         }
-        if (storages.Count > 0)
+        if (storages.Count > 0 && currentstorage==-1)
         {
             currentstorage = 0;
         }
